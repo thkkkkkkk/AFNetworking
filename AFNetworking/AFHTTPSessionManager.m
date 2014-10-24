@@ -137,7 +137,13 @@
                        success:(void (^)(NSURLSessionDataTask *task, id responseObject))success
                        failure:(void (^)(NSURLSessionDataTask *task, NSError *error))failure
 {
-    NSURLSessionDataTask *dataTask = [self dataTaskWithHTTPMethod:@"POST" URLString:URLString parameters:parameters success:success failure:failure];
+    //Li
+    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:parameters options:NSJSONWritingPrettyPrinted error:nil];
+    //Data转换为JSON
+    NSString* str = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    
+    
+    NSURLSessionDataTask *dataTask = [self dataTaskWithHTTPMethod:@"POST" URLString:URLString parameters:str success:success failure:failure];
 
     [dataTask resume];
 
@@ -226,6 +232,7 @@
 {
     NSError *serializationError = nil;
     NSMutableURLRequest *request = [self.requestSerializer requestWithMethod:method URLString:[[NSURL URLWithString:URLString relativeToURL:self.baseURL] absoluteString] parameters:parameters error:&serializationError];
+
     if (serializationError) {
         if (failure) {
 #pragma clang diagnostic push
@@ -239,15 +246,19 @@
         return nil;
     }
 
+    //Li
+    [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;//网络请求前转圈
     __block NSURLSessionDataTask *dataTask = nil;
     dataTask = [self dataTaskWithRequest:request completionHandler:^(NSURLResponse * __unused response, id responseObject, NSError *error) {
         if (error) {
             if (failure) {
                 failure(dataTask, error);
+                [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;//失败停止转圈
             }
         } else {
             if (success) {
                 success(dataTask, responseObject);
+                [UIApplication sharedApplication].networkActivityIndicatorVisible = NO;//成功停止转圈
             }
         }
     }];
